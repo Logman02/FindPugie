@@ -10,23 +10,47 @@ import SwiftUI
 struct MenuView: View {
     var body: some View {
         NavigationView {
-            VStack(spacing: 20) {
-                Text("Find Pugie")
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
+            ZStack {
+                // Full-screen background
+                Color(white: 0.1) // Very dark gray background
+                    .edgesIgnoringSafeArea(.all)
 
-                NavigationLink(destination: GameView()) {
-                    Text("Start Game")
-                        .font(.title2)
-                        .padding()
-                        .frame(maxWidth: .infinity)
-                        .background(Color.blue)
+                // Menu Content
+                VStack(spacing: 20) {
+                    Text("Find Pugie")
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
                         .foregroundColor(.white)
-                        .cornerRadius(10)
+
+                    // Difficulty buttons
+                    NavigationLink(destination: GameView(difficulty: .easy)) {
+                        MenuButton(title: "Easy")
+                    }
+                    NavigationLink(destination: GameView(difficulty: .medium)) {
+                        MenuButton(title: "Medium")
+                    }
+                    NavigationLink(destination: GameView(difficulty: .hard)) {
+                        MenuButton(title: "Hard")
+                    }
                 }
+                .padding()
             }
-            .padding()
         }
+    }
+}
+
+// A reusable button style for the menu options
+struct MenuButton: View {
+    let title: String
+
+    var body: some View {
+        Text(title)
+            .font(.title2)
+            .padding()
+            .frame(maxWidth: .infinity)
+            .background(Color.blue)
+            .foregroundColor(.white)
+            .cornerRadius(10)
     }
 }
 
