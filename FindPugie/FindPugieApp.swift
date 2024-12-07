@@ -11,7 +11,8 @@ import SwiftUI
 struct FindPugieApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            MenuView()
         }
     }
 }
+
