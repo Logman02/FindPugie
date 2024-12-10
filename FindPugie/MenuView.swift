@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import AVFoundation
 
 struct MenuView: View {
     var body: some View {
@@ -24,13 +25,13 @@ struct MenuView: View {
 
                     // Difficulty buttons
                     NavigationLink(destination: GameView(difficulty: .easy)) {
-                        MenuButton(title: "Easy")
+                        MenuButton(title: "Easy", backgroundColor: .green)
                     }
                     NavigationLink(destination: GameView(difficulty: .medium)) {
-                        MenuButton(title: "Medium")
+                        MenuButton(title: "Medium", backgroundColor: .yellow)
                     }
                     NavigationLink(destination: GameView(difficulty: .hard)) {
-                        MenuButton(title: "Hard")
+                        MenuButton(title: "Hard", backgroundColor: .red)
                     }
                 }
                 .padding()
@@ -42,13 +43,14 @@ struct MenuView: View {
 // A reusable button style for the menu options
 struct MenuButton: View {
     let title: String
+    let backgroundColor: Color
 
     var body: some View {
         Text(title)
             .font(.title2)
             .padding()
             .frame(maxWidth: .infinity)
-            .background(Color.blue)
+            .background(backgroundColor)
             .foregroundColor(.white)
             .cornerRadius(10)
     }

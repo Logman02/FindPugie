@@ -17,12 +17,16 @@ struct GameView: View {
     @State private var gameOver: Bool = false
     @State private var win: Bool = false
     @State private var timerActive: Bool = true
+    @State private var cloudAnimationIndex: Int = 0
+    @State private var cloudAnimationForward: Bool = true
 
     @Environment(\.presentationMode) var presentationMode
 
     let iconSize: CGFloat = 50
+    let cloudIconSize: CGFloat = 70 // Make cloud images bigger
     let screenBounds = UIScreen.main.bounds
-
+    let cloudFrames = ["cloud_sprite_1", "cloud_sprite_2", "cloud_sprite_3", "cloud_sprite_4"]
+    
     var body: some View {
         ZStack {
             // Background color
@@ -31,12 +35,30 @@ struct GameView: View {
 
             // Game icons
             ForEach(icons) { icon in
-                Image(systemName: icon.iconName)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: iconSize, height: iconSize)
-                    .foregroundColor(.white)
-                    .position(icon.position)
+                if icon.iconName == "PugieIconGame" {
+                    // Correct icon
+                    Image(icon.iconName)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: iconSize, height: iconSize)
+                        .position(icon.position)
+                } else if icon.iconName == "cloud" {
+                    // Animated cloud icon with random rotation
+                    Image(cloudFrames[cloudAnimationIndex])
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: cloudIconSize, height: cloudIconSize)
+                        .rotationEffect(icon.rotation)
+                        .position(icon.position)
+                } else {
+                    // Incorrect icons
+                    Image(systemName: icon.iconName)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: iconSize, height: iconSize)
+                        .foregroundColor(.white)
+                        .position(icon.position)
+                }
             }
 
             // Transparent tap detector
@@ -83,6 +105,9 @@ struct GameView: View {
             }
         }
         .onAppear(perform: setupGame)
+        .onReceive(Timer.publish(every: 0.2, on: .main, in: .common).autoconnect()) { _ in
+            animateCloud()
+        }
     }
 
     // Retry the current game
@@ -103,15 +128,16 @@ struct GameView: View {
             switch difficulty {
             case .easy: return (20, 1.0)
             case .medium: return (50, 1.5)
-            case .hard: return (70, 2.0)
+            case .hard: return (100, 2.5)
             }
         }()
 
         correctIconID = Int.random(in: 0..<iconCount)
         icons = (0..<iconCount).map { id in
-            GameIcon(
+            let randomRotation = [0, 90, 180].randomElement() ?? 0
+            return GameIcon(
                 id: id,
-                iconName: id == correctIconID ? "star.fill" : "circle",
+                iconName: id == correctIconID ? "PugieIconGame" : (Bool.random() ? "cloud" : "circle"),
                 position: CGPoint(
                     x: CGFloat.random(in: iconSize..<(screenBounds.width - iconSize)),
                     y: CGFloat.random(in: iconSize..<(screenBounds.height - iconSize))
@@ -119,7 +145,8 @@ struct GameView: View {
                 velocity: CGSize(
                     width: CGFloat.random(in: -2...2) * speedMultiplier,
                     height: CGFloat.random(in: -2...2) * speedMultiplier
-                )
+                ),
+                rotation: Angle(degrees: Double(randomRotation)) // Random rotation applied
             )
         }
 
@@ -145,9 +172,25 @@ struct GameView: View {
         }
     }
 
+    // Animate cloud frames
+    func animateCloud() {
+        guard timerActive else { return }
+
+        if cloudAnimationForward {
+            cloudAnimationIndex += 1
+            if cloudAnimationIndex == cloudFrames.count - 1 {
+                cloudAnimationForward = false
+            }
+        } else {
+            cloudAnimationIndex -= 1
+            if cloudAnimationIndex == 0 {
+                cloudAnimationForward = true
+            }
+        }
+    }
+
     // Check the tap location
     func checkTap(at location: CGPoint) {
-        // First, check if the tap intersects with the correct icon
         if let correctIcon = icons.first(where: { $0.id == correctIconID }) {
             let correctIconFrame = CGRect(
                 x: correctIcon.position.x - iconSize / 2,
@@ -163,7 +206,6 @@ struct GameView: View {
             }
         }
 
-        // If not, check for any other incorrect icons (causing a loss)
         for icon in icons {
             let iconFrame = CGRect(
                 x: icon.position.x - iconSize / 2,
@@ -192,6 +234,7 @@ struct GameIcon: Identifiable {
     let iconName: String
     var position: CGPoint
     var velocity: CGSize
+    var rotation: Angle // Add rotation property for random tilt
 }
 
 #Preview {
