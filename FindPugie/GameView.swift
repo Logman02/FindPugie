@@ -1,3 +1,10 @@
+// Todo: Make cloud count come from setupGame (too many clouds right now)
+// Make music work
+// Add sound effects
+// Dynamic cloud sizes and rotations while keeping the animation
+// Move High score in menu up
+// Add more UI (like Pugie in Menu)
+
 import SwiftUI
 
 enum Difficulty {
