@@ -1,9 +1,8 @@
 import SwiftUI
-import AVFoundation
 
 struct MenuView: View {
-    @State private var audioPlayer: AVAudioPlayer?
     @State private var highScore: Int = UserDefaults.standard.integer(forKey: "HighScore") // Retrieve stored high score
+    @ObservedObject private var audioManager = AudioManager.shared // Observe the audio manager
 
     var body: some View {
         NavigationView {
@@ -30,34 +29,22 @@ struct MenuView: View {
                     ) {
                         MenuButton(title: "Start", backgroundColor: .blue)
                     }
+
+                    // Toggle music button
+                    Button(action: {
+                        audioManager.toggleMusic()
+                    }) {
+                        Text(audioManager.isMusicOn() ? "Disable Music" : "Enable Music")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                            .background(Color.gray)
+                            .cornerRadius(10)
+                    }
+                    .padding()
                 }
                 .padding()
-            }
-        }
-        .onAppear(perform: playMenuMusic)
-        .onDisappear(perform: stopMusic)
-    }
-
-    // Play background music for the menu
-    func playMenuMusic() {
-        playAudio(named: "Irish Jig")
-    }
-
-    // Stop background music
-    func stopMusic() {
-        audioPlayer?.stop()
-    }
-
-    // Generic function to play a specific audio file
-    func playAudio(named fileName: String) {
-        if let path = Bundle.main.path(forResource: fileName, ofType: "mp3") {
-            let url = URL(fileURLWithPath: path)
-            do {
-                audioPlayer = try AVAudioPlayer(contentsOf: url)
-                audioPlayer?.numberOfLoops = -1 // Loop indefinitely
-                audioPlayer?.play()
-            } catch {
-                print("Error playing audio: \(error.localizedDescription)")
             }
         }
     }

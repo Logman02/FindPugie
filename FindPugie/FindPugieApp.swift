@@ -9,6 +9,9 @@ import SwiftUI
 
 @main
 struct FindPugieApp: App {
+    init() {
+            AudioManager.shared.playMusic()
+        }
     var body: some Scene {
         WindowGroup {
             MenuView()

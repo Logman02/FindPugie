@@ -23,6 +23,7 @@ struct GameView: View {
     @State private var cloudAnimationForward: Bool = true
     @State private var iconMovementTimer: Timer? = nil
     @State private var cloudAnimationTimer: Timer? = nil
+    @ObservedObject private var audioManager = AudioManager.shared
     
     @Environment(\.presentationMode) var presentationMode
     
