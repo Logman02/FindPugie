@@ -23,6 +23,7 @@ struct GameView: View {
     @State private var cloudAnimationForward: Bool = true
     @State private var iconMovementTimer: Timer? = nil
     @State private var cloudAnimationTimer: Timer? = nil
+    @State private var fadingClouds: [GameIcon] = []
     @ObservedObject private var audioManager = AudioManager.shared
     
     @Environment(\.presentationMode) var presentationMode
@@ -50,7 +51,7 @@ struct GameView: View {
             // Game icons
             ForEach(icons) { icon in
                 if icon.iconName == "PugieIconGame" {
-                    // Correct icon
+                    // Correct icon (Pugie)
                     Image(icon.iconName)
                         .resizable()
                         .scaledToFit()
@@ -62,9 +63,17 @@ struct GameView: View {
                         .resizable()
                         .scaledToFit()
                         .frame(width: cloudIconSize, height: cloudIconSize)
+                        .opacity(icon.opacity)
+                        .position(icon.position)
+                } else if icon.iconName == "GreenStoneIconGame" || icon.iconName == "BlueStoneIconGame" {
+                    // Stone icons
+                    Image(icon.iconName)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: iconSize, height: iconSize)
                         .position(icon.position)
                 } else {
-                    // Incorrect circle icons
+                    // Incorrect circle icons (fallback)
                     Image(systemName: icon.iconName)
                         .resizable()
                         .scaledToFit()
@@ -72,6 +81,16 @@ struct GameView: View {
                         .foregroundColor(.white)
                         .position(icon.position)
                 }
+            }
+            
+            // Also render fading clouds above everything else
+            ForEach(fadingClouds) { cloud in
+                Image(cloudFrames[cloudAnimationIndex])
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: cloudIconSize, height: cloudIconSize)
+                    .opacity(cloud.opacity)
+                    .position(cloud.position)
             }
 
             // Transparent tap detector
@@ -172,30 +191,72 @@ struct GameView: View {
     }
 
     func setupGame() {
+        // iconCount is total number of icons (including Pugie, circles, and clouds)
         let (iconCount, speedMultiplier, cloudCount): (Int, CGFloat, Int) = {
             switch difficulty {
             case .easy: return (20, 1.0, 5)
             case .medium: return (50, 1.5, 10)
-            case .hard: return (100, 2.5, 15)
+            case .hard: return (75, 2.5, 15)
             }
         }()
 
-        // Generate icons and assign one as the correct icon
+        // Generate icons with proper cloud count
         icons = (0..<iconCount).map { id in
-            let iconName: String = id == 0 ? "PugieIconGame" : // Assign the correct icon
-                (Bool.random() ? "cloud_sprite" : "circle")
-            return GameIcon(
-                id: UUID().uuidString, // Ensure a unique ID for each icon
-                iconName: iconName,
-                position: CGPoint(
-                    x: CGFloat.random(in: iconSize..<(screenBounds.width - iconSize)),
-                    y: CGFloat.random(in: iconSize..<(screenBounds.height - iconSize))
-                ),
-                velocity: CGSize(
-                    width: CGFloat.random(in: -2...2) * speedMultiplier,
-                    height: CGFloat.random(in: -2...2) * speedMultiplier
+            // First icon is always Pugie
+            if id == 0 {
+                return GameIcon(
+                    id: UUID().uuidString,
+                    iconName: "PugieIconGame",
+                    position: CGPoint(
+                        x: CGFloat.random(in: iconSize..<(screenBounds.width - iconSize)),
+                        y: CGFloat.random(in: iconSize..<(screenBounds.height - iconSize))
+                    ),
+                    velocity: CGSize(
+                        width: CGFloat.random(in: -2...2) * speedMultiplier,
+                        height: CGFloat.random(in: -2...2) * speedMultiplier
+                    )
                 )
-            )
+            }
+            // Next cloudCount icons are clouds
+            else if id <= cloudCount {
+                return GameIcon(
+                    id: UUID().uuidString,
+                    iconName: "cloud_sprite",
+                    position: CGPoint(
+                        x: CGFloat.random(in: iconSize..<(screenBounds.width - iconSize)),
+                        y: CGFloat.random(in: iconSize..<(screenBounds.height - iconSize))
+                    ),
+                    velocity: CGSize(
+                        width: CGFloat.random(in: -2...2) * speedMultiplier,
+                        height: CGFloat.random(in: -2...2) * speedMultiplier
+                    )
+                )
+            }
+            // Remaining icons are either circles or stone icons
+            else {
+                // Randomly choose between circle, green stone, and blue stone
+                let randomChoice = Int.random(in: 0...2)
+                let iconName: String
+                switch randomChoice {
+                case 0: iconName = "circle"
+                case 1: iconName = "GreenStoneIconGame"
+                case 2: iconName = "BlueStoneIconGame"
+                default: iconName = "circle"
+                }
+                
+                return GameIcon(
+                    id: UUID().uuidString,
+                    iconName: iconName,
+                    position: CGPoint(
+                        x: CGFloat.random(in: iconSize..<(screenBounds.width - iconSize)),
+                        y: CGFloat.random(in: iconSize..<(screenBounds.height - iconSize))
+                    ),
+                    velocity: CGSize(
+                        width: CGFloat.random(in: -2...2) * speedMultiplier,
+                        height: CGFloat.random(in: -2...2) * speedMultiplier
+                    )
+                )
+            }
         }
 
         // Assign the correct icon ID after creating the icons
@@ -219,6 +280,7 @@ struct GameView: View {
     func moveIcons() {
         guard timerActive else { return }
 
+        // Move regular icons
         for i in 0..<icons.count {
             // Update positions based on velocity
             icons[i].position.x += icons[i].velocity.width
@@ -231,6 +293,12 @@ struct GameView: View {
             if icons[i].position.y < iconSize || icons[i].position.y > screenBounds.height - iconSize {
                 icons[i].velocity.height *= -1
             }
+        }
+        
+        // Move fading clouds too
+        for i in 0..<fadingClouds.count {
+            fadingClouds[i].position.x += fadingClouds[i].velocity.width
+            fadingClouds[i].position.y += fadingClouds[i].velocity.height
         }
     }
 
@@ -253,27 +321,45 @@ struct GameView: View {
 
     func checkTap(at location: CGPoint) {
         // Step 1: Check if the tap is on a cloud
-        if let cloudIndex = icons.firstIndex(where: { $0.iconName.starts(with: "cloud_sprite") && isIconTapped(icon: $0, at: location) }) {
-            // Safely remove the cloud using index to avoid unexpected behavior
+        if let cloudIndex = icons.firstIndex(where: { $0.iconName == "cloud_sprite" && isIconTapped(icon: $0, at: location) && !$0.isFading }) {
+            var tappedCloud = icons[cloudIndex]
+            tappedCloud.isFading = true
             icons.remove(at: cloudIndex)
-            return // Exit early, game continues
+            fadingClouds.append(tappedCloud)
+            
+            // Start fade animation
+            withAnimation(.linear(duration: 0.5)) {
+                if let index = fadingClouds.firstIndex(where: { $0.id == tappedCloud.id }) {
+                    fadingClouds[index].opacity = 0
+                }
+            }
+            
+            // Remove after animation completes
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                fadingClouds.removeAll { $0.id == tappedCloud.id }
+            }
+            return
         }
         
-        // Step 2: Check if the tap is on the correct icon
+        // Step 2: Check if the tap is on the correct icon (Pugie)
         if let correctIcon = icons.first(where: { $0.id == correctIconID && isIconTapped(icon: $0, at: location) }) {
             win = true
-            currentStreak += 1 // Increase streak on win
+            currentStreak += 1
             highScore = max(highScore, currentStreak)
             endGame()
-            return // Exit early after winning
+            return
         }
         
-        // Step 3: Check if the tap is on an incorrect icon
-        if let incorrectIcon = icons.first(where: { $0.iconName != "PugieIconGame" && !($0.iconName.starts(with: "cloud_sprite")) && isIconTapped(icon: $0, at: location) }) {
+        // Step 3: Check if the tap is on an incorrect icon (circle or stones)
+        if let incorrectIcon = icons.first(where: {
+            $0.iconName != "PugieIconGame" &&
+            !($0.iconName == "cloud_sprite") &&
+            isIconTapped(icon: $0, at: location)
+        }) {
             win = false
-            currentStreak = 0 // Reset streak on loss
+            currentStreak = 0
             endGame()
-            return // Exit early after losing
+            return
         }
     }
 
@@ -299,4 +385,6 @@ struct GameIcon: Identifiable {
     var iconName: String
     var position: CGPoint
     var velocity: CGSize
+    var opacity: Double = 1.0 // Add this line
+    var isFading: Bool = false // Add this line
 }
