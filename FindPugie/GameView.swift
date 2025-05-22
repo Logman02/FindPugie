@@ -23,6 +23,7 @@ struct GameView: View {
     @State private var cloudAnimationForward: Bool = true
     @State private var iconMovementTimer: Timer? = nil
     @State private var cloudAnimationTimer: Timer? = nil
+    @State private var fadingClouds: [GameIcon] = []
     @ObservedObject private var audioManager = AudioManager.shared
     
     @Environment(\.presentationMode) var presentationMode
@@ -62,6 +63,7 @@ struct GameView: View {
                         .resizable()
                         .scaledToFit()
                         .frame(width: cloudIconSize, height: cloudIconSize)
+                        .opacity(icon.opacity)
                         .position(icon.position)
                 } else if icon.iconName == "GreenStoneIconGame" || icon.iconName == "BlueStoneIconGame" {
                     // Stone icons
@@ -79,6 +81,16 @@ struct GameView: View {
                         .foregroundColor(.white)
                         .position(icon.position)
                 }
+            }
+            
+            // Also render fading clouds above everything else
+            ForEach(fadingClouds) { cloud in
+                Image(cloudFrames[cloudAnimationIndex])
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: cloudIconSize, height: cloudIconSize)
+                    .opacity(cloud.opacity)
+                    .position(cloud.position)
             }
 
             // Transparent tap detector
@@ -268,6 +280,7 @@ struct GameView: View {
     func moveIcons() {
         guard timerActive else { return }
 
+        // Move regular icons
         for i in 0..<icons.count {
             // Update positions based on velocity
             icons[i].position.x += icons[i].velocity.width
@@ -280,6 +293,12 @@ struct GameView: View {
             if icons[i].position.y < iconSize || icons[i].position.y > screenBounds.height - iconSize {
                 icons[i].velocity.height *= -1
             }
+        }
+        
+        // Move fading clouds too
+        for i in 0..<fadingClouds.count {
+            fadingClouds[i].position.x += fadingClouds[i].velocity.width
+            fadingClouds[i].position.y += fadingClouds[i].velocity.height
         }
     }
 
@@ -302,8 +321,23 @@ struct GameView: View {
 
     func checkTap(at location: CGPoint) {
         // Step 1: Check if the tap is on a cloud
-        if let cloudIndex = icons.firstIndex(where: { $0.iconName == "cloud_sprite" && isIconTapped(icon: $0, at: location) }) {
+        if let cloudIndex = icons.firstIndex(where: { $0.iconName == "cloud_sprite" && isIconTapped(icon: $0, at: location) && !$0.isFading }) {
+            var tappedCloud = icons[cloudIndex]
+            tappedCloud.isFading = true
             icons.remove(at: cloudIndex)
+            fadingClouds.append(tappedCloud)
+            
+            // Start fade animation
+            withAnimation(.linear(duration: 0.5)) {
+                if let index = fadingClouds.firstIndex(where: { $0.id == tappedCloud.id }) {
+                    fadingClouds[index].opacity = 0
+                }
+            }
+            
+            // Remove after animation completes
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                fadingClouds.removeAll { $0.id == tappedCloud.id }
+            }
             return
         }
         
@@ -351,4 +385,6 @@ struct GameIcon: Identifiable {
     var iconName: String
     var position: CGPoint
     var velocity: CGSize
+    var opacity: Double = 1.0 // Add this line
+    var isFading: Bool = false // Add this line
 }
