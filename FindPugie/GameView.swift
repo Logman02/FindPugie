@@ -172,30 +172,62 @@ struct GameView: View {
     }
 
     func setupGame() {
+        // iconCount is total number of icons (including Pugie, circles, and clouds)
         let (iconCount, speedMultiplier, cloudCount): (Int, CGFloat, Int) = {
             switch difficulty {
             case .easy: return (20, 1.0, 5)
             case .medium: return (50, 1.5, 10)
-            case .hard: return (100, 2.5, 15)
+            case .hard: return (75, 2.5, 15)
             }
         }()
 
-        // Generate icons and assign one as the correct icon
+        // Generate icons with proper cloud count
         icons = (0..<iconCount).map { id in
-            let iconName: String = id == 0 ? "PugieIconGame" : // Assign the correct icon
-                (Bool.random() ? "cloud_sprite" : "circle")
-            return GameIcon(
-                id: UUID().uuidString, // Ensure a unique ID for each icon
-                iconName: iconName,
-                position: CGPoint(
-                    x: CGFloat.random(in: iconSize..<(screenBounds.width - iconSize)),
-                    y: CGFloat.random(in: iconSize..<(screenBounds.height - iconSize))
-                ),
-                velocity: CGSize(
-                    width: CGFloat.random(in: -2...2) * speedMultiplier,
-                    height: CGFloat.random(in: -2...2) * speedMultiplier
+            // First icon is always Pugie
+            if id == 0 {
+                return GameIcon(
+                    id: UUID().uuidString,
+                    iconName: "PugieIconGame",
+                    position: CGPoint(
+                        x: CGFloat.random(in: iconSize..<(screenBounds.width - iconSize)),
+                        y: CGFloat.random(in: iconSize..<(screenBounds.height - iconSize))
+                    ),
+                    velocity: CGSize(
+                        width: CGFloat.random(in: -2...2) * speedMultiplier,
+                        height: CGFloat.random(in: -2...2) * speedMultiplier
+                    )
                 )
-            )
+            }
+            // Next cloudCount icons are clouds
+            else if id <= cloudCount {
+                return GameIcon(
+                    id: UUID().uuidString,
+                    iconName: "cloud_sprite",
+                    position: CGPoint(
+                        x: CGFloat.random(in: iconSize..<(screenBounds.width - iconSize)),
+                        y: CGFloat.random(in: iconSize..<(screenBounds.height - iconSize))
+                    ),
+                    velocity: CGSize(
+                        width: CGFloat.random(in: -2...2) * speedMultiplier,
+                        height: CGFloat.random(in: -2...2) * speedMultiplier
+                    )
+                )
+            }
+            // Remaining icons are circles
+            else {
+                return GameIcon(
+                    id: UUID().uuidString,
+                    iconName: "circle",
+                    position: CGPoint(
+                        x: CGFloat.random(in: iconSize..<(screenBounds.width - iconSize)),
+                        y: CGFloat.random(in: iconSize..<(screenBounds.height - iconSize))
+                    ),
+                    velocity: CGSize(
+                        width: CGFloat.random(in: -2...2) * speedMultiplier,
+                        height: CGFloat.random(in: -2...2) * speedMultiplier
+                    )
+                )
+            }
         }
 
         // Assign the correct icon ID after creating the icons
