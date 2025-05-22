@@ -1,4 +1,3 @@
-// Todo: Make cloud count come from setupGame (too many clouds right now)
 // Make music work
 // Add sound effects
 // Dynamic cloud sizes and rotations while keeping the animation
@@ -195,7 +194,7 @@ struct GameView: View {
         let (iconCount, speedMultiplier, cloudCount): (Int, CGFloat, Int) = {
             switch difficulty {
             case .easy: return (20, 1.0, 5)
-            case .medium: return (50, 1.5, 10)
+            case .medium: return (40, 1.5, 10)
             case .hard: return (75, 2.5, 15)
             }
         }()
