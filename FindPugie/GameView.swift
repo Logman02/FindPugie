@@ -61,7 +61,8 @@ struct GameView: View {
                     Image(cloudFrames[cloudAnimationIndex])
                         .resizable()
                         .scaledToFit()
-                        .frame(width: cloudIconSize, height: cloudIconSize)
+                        .frame(width: cloudIconSize * icon.scale, height: cloudIconSize * icon.scale)
+                        .rotationEffect(icon.rotation)
                         .opacity(icon.opacity)
                         .position(icon.position)
                 } else if icon.iconName == "GreenStoneIconGame" || icon.iconName == "BlueStoneIconGame" {
@@ -82,16 +83,17 @@ struct GameView: View {
                 }
             }
             
-            // Also render fading clouds above everything else
+            // Also update the fading clouds rendering:
             ForEach(fadingClouds) { cloud in
                 Image(cloudFrames[cloudAnimationIndex])
                     .resizable()
                     .scaledToFit()
-                    .frame(width: cloudIconSize, height: cloudIconSize)
+                    .frame(width: cloudIconSize * cloud.scale, height: cloudIconSize * cloud.scale)
+                    .rotationEffect(cloud.rotation)
                     .opacity(cloud.opacity)
                     .position(cloud.position)
             }
-
+            
             // Transparent tap detector
             Rectangle()
                 .foregroundColor(.clear)
@@ -228,7 +230,9 @@ struct GameView: View {
                     velocity: CGSize(
                         width: CGFloat.random(in: -2...2) * speedMultiplier,
                         height: CGFloat.random(in: -2...2) * speedMultiplier
-                    )
+                    ),
+                    scale: CGFloat.random(in: 0.7...1.3),       // Random scale between 70% and 130%
+                    rotation: Angle(degrees: Double.random(in: 0...360)) // Random rotation
                 )
             }
             // Remaining icons are either circles or stone icons
@@ -364,11 +368,20 @@ struct GameView: View {
 
     // Helper function to check if the tap is within the bounds of an icon
     func isIconTapped(icon: GameIcon, at location: CGPoint) -> Bool {
+        let size: CGFloat
+        if icon.iconName == "cloud_sprite" {
+            // Use scaled size for clouds
+            size = (cloudIconSize * icon.scale) / 2
+        } else {
+            // Use standard size for other icons
+            size = iconSize / 2
+        }
+        
         let iconFrame = CGRect(
-            x: icon.position.x - iconSize / 2,
-            y: icon.position.y - iconSize / 2,
-            width: iconSize,
-            height: iconSize
+            x: icon.position.x - size,
+            y: icon.position.y - size,
+            width: size * 2,
+            height: size * 2
         )
         return iconFrame.contains(location)
     }
@@ -386,4 +399,6 @@ struct GameIcon: Identifiable {
     var velocity: CGSize
     var opacity: Double = 1.0 // Add this line
     var isFading: Bool = false // Add this line
+    var scale: CGFloat = 1.0      // Add for dynamic scaling
+    var rotation: Angle = .zero   // Add for rotation
 }
