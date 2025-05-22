@@ -23,6 +23,8 @@ struct GameView: View {
     @State private var iconMovementTimer: Timer? = nil
     @State private var cloudAnimationTimer: Timer? = nil
     @State private var fadingClouds: [GameIcon] = []
+    @State private var backgroundColor: Color = .levelRed
+    @State private var previousBackgroundColor: Color = .clear
     @ObservedObject private var audioManager = AudioManager.shared
     
     @Environment(\.presentationMode) var presentationMode
@@ -43,8 +45,12 @@ struct GameView: View {
 
     var body: some View {
         ZStack {
-            // Background color
-            Color(white: 0.1)
+//            // Background color
+//            Color(white: 0.1)
+//                .edgesIgnoringSafeArea(.all)
+            
+            // Updated background color
+            backgroundColor
                 .edgesIgnoringSafeArea(.all)
 
             // Game icons
@@ -156,6 +162,11 @@ struct GameView: View {
     }
 
     func continueGame() {
+        // Change background color (ensuring it's different from previous)
+        let availableColors = [Color.levelRed, Color.levelBlue, Color.levelGreen].filter { $0 != previousBackgroundColor }
+        previousBackgroundColor = backgroundColor
+        backgroundColor = availableColors.randomElement() ?? .levelRed
+        
         // Reset the game state
         gameOver = false // Set game over to false, allowing the new game to continue
         timerActive = true // Reactivate the timer to allow movement/animations
@@ -192,6 +203,12 @@ struct GameView: View {
     }
 
     func setupGame() {
+        // Set initial background color if starting new game
+        if previousBackgroundColor == .clear {
+            backgroundColor = .levelRed
+            previousBackgroundColor = .levelBlue // Force next color to be different
+        }
+        
         // iconCount is total number of icons (including Pugie, circles, and clouds)
         let (iconCount, speedMultiplier, cloudCount): (Int, CGFloat, Int) = {
             switch difficulty {
@@ -231,7 +248,7 @@ struct GameView: View {
                         width: CGFloat.random(in: -2...2) * speedMultiplier,
                         height: CGFloat.random(in: -2...2) * speedMultiplier
                     ),
-                    scale: CGFloat.random(in: 0.7...1.3),       // Random scale between 70% and 130%
+                    scale: CGFloat.random(in: 0.7...1.5),       // Random scale between 70% and 150%
                     rotation: Angle(degrees: Double.random(in: 0...360)) // Random rotation
                 )
             }
@@ -331,7 +348,7 @@ struct GameView: View {
             fadingClouds.append(tappedCloud)
             
             // Start fade animation
-            withAnimation(.linear(duration: 0.5)) {
+            withAnimation(.linear(duration: 0.3)) {
                 if let index = fadingClouds.firstIndex(where: { $0.id == tappedCloud.id }) {
                     fadingClouds[index].opacity = 0
                 }
@@ -401,4 +418,22 @@ struct GameIcon: Identifiable {
     var isFading: Bool = false // Add this line
     var scale: CGFloat = 1.0      // Add for dynamic scaling
     var rotation: Angle = .zero   // Add for rotation
+}
+
+extension Color {
+    static let levelRed = Color(hex: "1c0101")
+    static let levelBlue = Color(hex: "01091c")
+    static let levelGreen = Color(hex: "021401")
+    
+    init(hex: String) {
+        let scanner = Scanner(string: hex)
+        var rgbValue: UInt64 = 0
+        scanner.scanHexInt64(&rgbValue)
+        
+        let r = Double((rgbValue & 0xFF0000) >> 16) / 255.0
+        let g = Double((rgbValue & 0x00FF00) >> 8) / 255.0
+        let b = Double(rgbValue & 0x0000FF) / 255.0
+        
+        self.init(red: r, green: g, blue: b)
+    }
 }
