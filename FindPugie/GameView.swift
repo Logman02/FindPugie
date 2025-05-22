@@ -50,7 +50,7 @@ struct GameView: View {
             // Game icons
             ForEach(icons) { icon in
                 if icon.iconName == "PugieIconGame" {
-                    // Correct icon
+                    // Correct icon (Pugie)
                     Image(icon.iconName)
                         .resizable()
                         .scaledToFit()
@@ -63,8 +63,15 @@ struct GameView: View {
                         .scaledToFit()
                         .frame(width: cloudIconSize, height: cloudIconSize)
                         .position(icon.position)
+                } else if icon.iconName == "GreenStoneIconGame" || icon.iconName == "BlueStoneIconGame" {
+                    // Stone icons
+                    Image(icon.iconName)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: iconSize, height: iconSize)
+                        .position(icon.position)
                 } else {
-                    // Incorrect circle icons
+                    // Incorrect circle icons (fallback)
                     Image(systemName: icon.iconName)
                         .resizable()
                         .scaledToFit()
@@ -213,11 +220,21 @@ struct GameView: View {
                     )
                 )
             }
-            // Remaining icons are circles
+            // Remaining icons are either circles or stone icons
             else {
+                // Randomly choose between circle, green stone, and blue stone
+                let randomChoice = Int.random(in: 0...2)
+                let iconName: String
+                switch randomChoice {
+                case 0: iconName = "circle"
+                case 1: iconName = "GreenStoneIconGame"
+                case 2: iconName = "BlueStoneIconGame"
+                default: iconName = "circle"
+                }
+                
                 return GameIcon(
                     id: UUID().uuidString,
-                    iconName: "circle",
+                    iconName: iconName,
                     position: CGPoint(
                         x: CGFloat.random(in: iconSize..<(screenBounds.width - iconSize)),
                         y: CGFloat.random(in: iconSize..<(screenBounds.height - iconSize))
@@ -285,27 +302,30 @@ struct GameView: View {
 
     func checkTap(at location: CGPoint) {
         // Step 1: Check if the tap is on a cloud
-        if let cloudIndex = icons.firstIndex(where: { $0.iconName.starts(with: "cloud_sprite") && isIconTapped(icon: $0, at: location) }) {
-            // Safely remove the cloud using index to avoid unexpected behavior
+        if let cloudIndex = icons.firstIndex(where: { $0.iconName == "cloud_sprite" && isIconTapped(icon: $0, at: location) }) {
             icons.remove(at: cloudIndex)
-            return // Exit early, game continues
+            return
         }
         
-        // Step 2: Check if the tap is on the correct icon
+        // Step 2: Check if the tap is on the correct icon (Pugie)
         if let correctIcon = icons.first(where: { $0.id == correctIconID && isIconTapped(icon: $0, at: location) }) {
             win = true
-            currentStreak += 1 // Increase streak on win
+            currentStreak += 1
             highScore = max(highScore, currentStreak)
             endGame()
-            return // Exit early after winning
+            return
         }
         
-        // Step 3: Check if the tap is on an incorrect icon
-        if let incorrectIcon = icons.first(where: { $0.iconName != "PugieIconGame" && !($0.iconName.starts(with: "cloud_sprite")) && isIconTapped(icon: $0, at: location) }) {
+        // Step 3: Check if the tap is on an incorrect icon (circle or stones)
+        if let incorrectIcon = icons.first(where: {
+            $0.iconName != "PugieIconGame" &&
+            !($0.iconName == "cloud_sprite") &&
+            isIconTapped(icon: $0, at: location)
+        }) {
             win = false
-            currentStreak = 0 // Reset streak on loss
+            currentStreak = 0
             endGame()
-            return // Exit early after losing
+            return
         }
     }
 
