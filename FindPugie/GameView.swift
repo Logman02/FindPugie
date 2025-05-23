@@ -1,4 +1,3 @@
-// Todo: Make cloud count come from setupGame (too many clouds right now)
 // Make music work
 // Add sound effects
 // Dynamic cloud sizes and rotations while keeping the animation
@@ -24,6 +23,8 @@ struct GameView: View {
     @State private var iconMovementTimer: Timer? = nil
     @State private var cloudAnimationTimer: Timer? = nil
     @State private var fadingClouds: [GameIcon] = []
+    @State private var backgroundColor: Color = .levelRed
+    @State private var previousBackgroundColor: Color = .clear
     @ObservedObject private var audioManager = AudioManager.shared
     
     @Environment(\.presentationMode) var presentationMode
@@ -44,8 +45,12 @@ struct GameView: View {
 
     var body: some View {
         ZStack {
-            // Background color
-            Color(white: 0.1)
+//            // Background color
+//            Color(white: 0.1)
+//                .edgesIgnoringSafeArea(.all)
+            
+            // Updated background color
+            backgroundColor
                 .edgesIgnoringSafeArea(.all)
 
             // Game icons
@@ -62,7 +67,8 @@ struct GameView: View {
                     Image(cloudFrames[cloudAnimationIndex])
                         .resizable()
                         .scaledToFit()
-                        .frame(width: cloudIconSize, height: cloudIconSize)
+                        .frame(width: cloudIconSize * icon.scale, height: cloudIconSize * icon.scale)
+                        .rotationEffect(icon.rotation)
                         .opacity(icon.opacity)
                         .position(icon.position)
                 } else if icon.iconName == "GreenStoneIconGame" || icon.iconName == "BlueStoneIconGame" {
@@ -83,16 +89,17 @@ struct GameView: View {
                 }
             }
             
-            // Also render fading clouds above everything else
+            // Also update the fading clouds rendering:
             ForEach(fadingClouds) { cloud in
                 Image(cloudFrames[cloudAnimationIndex])
                     .resizable()
                     .scaledToFit()
-                    .frame(width: cloudIconSize, height: cloudIconSize)
+                    .frame(width: cloudIconSize * cloud.scale, height: cloudIconSize * cloud.scale)
+                    .rotationEffect(cloud.rotation)
                     .opacity(cloud.opacity)
                     .position(cloud.position)
             }
-
+            
             // Transparent tap detector
             Rectangle()
                 .foregroundColor(.clear)
@@ -155,6 +162,11 @@ struct GameView: View {
     }
 
     func continueGame() {
+        // Change background color (ensuring it's different from previous)
+        let availableColors = [Color.levelRed, Color.levelBlue, Color.levelGreen].filter { $0 != previousBackgroundColor }
+        previousBackgroundColor = backgroundColor
+        backgroundColor = availableColors.randomElement() ?? .levelRed
+        
         // Reset the game state
         gameOver = false // Set game over to false, allowing the new game to continue
         timerActive = true // Reactivate the timer to allow movement/animations
@@ -191,11 +203,17 @@ struct GameView: View {
     }
 
     func setupGame() {
+        // Set initial background color if starting new game
+        if previousBackgroundColor == .clear {
+            backgroundColor = .levelRed
+            previousBackgroundColor = .levelBlue // Force next color to be different
+        }
+        
         // iconCount is total number of icons (including Pugie, circles, and clouds)
         let (iconCount, speedMultiplier, cloudCount): (Int, CGFloat, Int) = {
             switch difficulty {
             case .easy: return (20, 1.0, 5)
-            case .medium: return (50, 1.5, 10)
+            case .medium: return (40, 1.5, 10)
             case .hard: return (75, 2.5, 15)
             }
         }()
@@ -229,7 +247,9 @@ struct GameView: View {
                     velocity: CGSize(
                         width: CGFloat.random(in: -2...2) * speedMultiplier,
                         height: CGFloat.random(in: -2...2) * speedMultiplier
-                    )
+                    ),
+                    scale: CGFloat.random(in: 0.7...1.5),       // Random scale between 70% and 150%
+                    rotation: Angle(degrees: Double.random(in: 0...360)) // Random rotation
                 )
             }
             // Remaining icons are either circles or stone icons
@@ -328,7 +348,7 @@ struct GameView: View {
             fadingClouds.append(tappedCloud)
             
             // Start fade animation
-            withAnimation(.linear(duration: 0.5)) {
+            withAnimation(.linear(duration: 0.3)) {
                 if let index = fadingClouds.firstIndex(where: { $0.id == tappedCloud.id }) {
                     fadingClouds[index].opacity = 0
                 }
@@ -365,11 +385,20 @@ struct GameView: View {
 
     // Helper function to check if the tap is within the bounds of an icon
     func isIconTapped(icon: GameIcon, at location: CGPoint) -> Bool {
+        let size: CGFloat
+        if icon.iconName == "cloud_sprite" {
+            // Use scaled size for clouds
+            size = (cloudIconSize * icon.scale) / 2
+        } else {
+            // Use standard size for other icons
+            size = iconSize / 2
+        }
+        
         let iconFrame = CGRect(
-            x: icon.position.x - iconSize / 2,
-            y: icon.position.y - iconSize / 2,
-            width: iconSize,
-            height: iconSize
+            x: icon.position.x - size,
+            y: icon.position.y - size,
+            width: size * 2,
+            height: size * 2
         )
         return iconFrame.contains(location)
     }
@@ -387,4 +416,24 @@ struct GameIcon: Identifiable {
     var velocity: CGSize
     var opacity: Double = 1.0 // Add this line
     var isFading: Bool = false // Add this line
+    var scale: CGFloat = 1.0      // Add for dynamic scaling
+    var rotation: Angle = .zero   // Add for rotation
+}
+
+extension Color {
+    static let levelRed = Color(hex: "1c0101")
+    static let levelBlue = Color(hex: "01091c")
+    static let levelGreen = Color(hex: "021401")
+    
+    init(hex: String) {
+        let scanner = Scanner(string: hex)
+        var rgbValue: UInt64 = 0
+        scanner.scanHexInt64(&rgbValue)
+        
+        let r = Double((rgbValue & 0xFF0000) >> 16) / 255.0
+        let g = Double((rgbValue & 0x00FF00) >> 8) / 255.0
+        let b = Double(rgbValue & 0x0000FF) / 255.0
+        
+        self.init(red: r, green: g, blue: b)
+    }
 }
