@@ -3,10 +3,9 @@ import Foundation
 
 class AudioManager: ObservableObject {
     static let shared = AudioManager()
-    
+    private var soundEffectPlayer: AVAudioPlayer?
     private var audioPlayer: AVAudioPlayer?
     
-    // @Published property to automatically notify the UI when it changes
     @Published private var isMusicEnabled: Bool = UserDefaults.standard.bool(forKey: "isMusicEnabled") {
         didSet {
             UserDefaults.standard.set(isMusicEnabled, forKey: "isMusicEnabled")
@@ -14,13 +13,12 @@ class AudioManager: ObservableObject {
     }
     
     private init() {
-        // Start playing music if it's enabled when the app starts
         if isMusicEnabled {
             playMusic()
         }
     }
     
-    // Play the audio file "dodododododododo"
+    // Music Methods (unchanged)
     func playMusic() {
         guard isMusicEnabled else { return }
         
@@ -29,7 +27,7 @@ class AudioManager: ObservableObject {
                 let url = URL(fileURLWithPath: path)
                 do {
                     audioPlayer = try AVAudioPlayer(contentsOf: url)
-                    audioPlayer?.numberOfLoops = -1 // Loop indefinitely
+                    audioPlayer?.numberOfLoops = -1
                     audioPlayer?.play()
                 } catch {
                     print("Error playing audio: \(error.localizedDescription)")
@@ -40,24 +38,40 @@ class AudioManager: ObservableObject {
         }
     }
     
-    // Stop music
     func stopMusic() {
         audioPlayer?.stop()
         audioPlayer = nil
     }
     
-    // Toggle music on/off
     func toggleMusic() {
         isMusicEnabled.toggle()
+        isMusicEnabled ? playMusic() : stopMusic()
+    }
+    
+    // Updated Sound Effect Method
+    func playSoundEffect(named name: String) {
+        // First try with extension if not provided
+        let baseName = (name as NSString).deletingPathExtension
+        let ext = (name as NSString).pathExtension.isEmpty ? "mp3" : (name as NSString).pathExtension
         
-        if isMusicEnabled {
-            playMusic()
-        } else {
-            stopMusic()
+        guard let path = Bundle.main.path(forResource: baseName, ofType: ext) else {
+            print("Sound effect file not found: \(baseName).\(ext)")
+            return
+        }
+        
+        let url = URL(fileURLWithPath: path)
+        
+        do {
+            // Create a new player for each sound effect
+            let player = try AVAudioPlayer(contentsOf: url)
+            player.volume = 0.7 // Slightly quieter than music
+            player.play()
+            soundEffectPlayer = player // Keep reference to prevent immediate deallocation
+        } catch {
+            print("Couldn't play sound effect: \(error.localizedDescription)")
         }
     }
     
-    // Check if music is enabled
     func isMusicOn() -> Bool {
         return isMusicEnabled
     }

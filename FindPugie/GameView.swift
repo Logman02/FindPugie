@@ -348,6 +348,9 @@ struct GameView: View {
             icons.remove(at: cloudIndex)
             fadingClouds.append(tappedCloud)
             
+            // Play cloud pop sound effect
+            audioManager.playSoundEffect(named: "cloud_pop") // Make sure this matches your sound file name
+            
             // Start fade animation
             withAnimation(.linear(duration: 0.3)) {
                 if let index = fadingClouds.firstIndex(where: { $0.id == tappedCloud.id }) {
