@@ -71,7 +71,7 @@ struct GameView: View {
                         .rotationEffect(icon.rotation)
                         .opacity(icon.opacity)
                         .position(icon.position)
-                } else if icon.iconName == "GreenStoneIconGame" || icon.iconName == "BlueStoneIconGame" || icon.iconName == "RedStoneIconGame" {
+                } else if icon.iconName == "GreenStoneIconGame" || icon.iconName == "BlueStoneIconGame" {
                     // Stone icons
                     Image(icon.iconName)
                         .resizable()
@@ -255,13 +255,12 @@ struct GameView: View {
             // Remaining icons are either circles or stone icons
             else {
                 // Randomly choose between circle, green stone, and blue stone
-                let randomChoice = Int.random(in: 0...3)
+                let randomChoice = Int.random(in: 0...2)
                 let iconName: String
                 switch randomChoice {
                 case 0: iconName = "circle"
                 case 1: iconName = "GreenStoneIconGame"
                 case 2: iconName = "BlueStoneIconGame"
-                case 3: iconName = "RedStoneIconGame"
                 default: iconName = "circle"
                 }
                 
