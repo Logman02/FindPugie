@@ -1,6 +1,6 @@
 // Make music work
 // Add sound effects
-// Dynamic cloud sizes and rotations while keeping the animation
+// Fix dynamic background colors so its never the same as before
 // Move High score in menu up
 // Add more UI (like Pugie in Menu)
 
